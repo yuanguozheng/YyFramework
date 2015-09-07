@@ -27,6 +27,8 @@ import com.coderyuan.yyframework.db.DbUtils;
 import com.coderyuan.yyframework.models.ApiClassModel;
 import com.coderyuan.yyframework.models.ApiMethodModel;
 import com.coderyuan.yyframework.models.ErrorTypes;
+import com.coderyuan.yyframework.models.ServiceInfoModel;
+import com.coderyuan.yyframework.models.ServletHttpModel;
 import com.coderyuan.yyframework.settings.Constants;
 import com.coderyuan.yyframework.utils.JsonUtil;
 
@@ -66,54 +68,66 @@ public class DispatcherServlet extends HttpServlet {
     protected void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         req.setCharacterEncoding(Constants.CHARSET);
         String rawPath = req.getRequestURI().replace(req.getServletPath(), "");
-        ServiceInfo serviceInfo = parsePath(rawPath);
+        ServiceInfoModel serviceInfo = parsePath(rawPath);
         if (serviceInfo == null) {
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
         }
-        createClassInstance(serviceInfo);
+        serviceInfo.setServlet(new ServletHttpModel(req, res));
+        ApiClassModel classInstance = createClassInstance(serviceInfo);
+        if (classInstance == null) {
+            return;
+        }
+        invokeMethod(serviceInfo, classInstance);
     }
 
-    private Object createClassInstance(HttpServletRequest req, HttpServletResponse res, ServiceInfo serviceInfo) {
-        try {
-            ApiClassModel clsModel = sClassRouteMap.get(serviceInfo.getClassPath());
-            if (clsModel == null) {
-                JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
-                return null;
-            }
-            if (clsModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
-                if (!req.getMethod().toUpperCase().equals(clsModel.getRequestMethod().toString())) {
-                    mJsonUtil.writeJson(ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
-                    return null;
-                }
-            }
-            Class<?> cls = clsModel.getApiClass();
-            return cls.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
-            mJsonUtil.writeJson(ApiResultManager.getErrorResult(ErrorTypes.SERVER_ERROR));
+    private ApiClassModel createClassInstance(ServiceInfoModel serviceInfo) {
+        HttpServletResponse res = serviceInfo.getServlet().getResponse();
+        ApiClassModel clsModel = sClassRouteMap.get(serviceInfo.getClassPath());
+        if (clsModel == null) {
+            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return null;
         }
+        if (clsModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
+            if (!serviceInfo.isMethodAvailable(clsModel.getRequestMethod())) {
+                JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
+                return null;
+            }
+        }
+        return clsModel;
     }
 
-    private void invokeMethod(HttpServletRequest req, ServiceInfo serviceInfo,
-                              ApiClassModel clsModel, Object instance)
-            throws IOException, IllegalAccessException, InvocationTargetException {
+    private void invokeMethod(ServiceInfoModel serviceInfo, ApiClassModel clsModel) {
+        HttpServletRequest req = serviceInfo.getServlet().getRequest();
+        HttpServletResponse res = serviceInfo.getServlet().getResponse();
+        Class<?> cls = clsModel.getApiClass();
+        Object classInstance;
+        try {
+            classInstance = cls.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            e.printStackTrace();
+            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
+            return;
+        }
         ApiMethodModel methodModel = clsModel.getMethods().get(serviceInfo.getMethodPath());
         if (methodModel == null) {
-            mJsonUtil.writeJson(ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
+            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
         }
         if (methodModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
             if (!req.getMethod().toUpperCase().equals(methodModel.getRequestMethod().toString())) {
-                mJsonUtil.writeJson(ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
+                JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
                 return;
             }
         }
-        methodModel.getMethod().invoke(instance);
+        try {
+            methodModel.getMethod().invoke(classInstance);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
     }
 
-    private ServiceInfo parsePath(String rawPath) {
+    private ServiceInfoModel parsePath(String rawPath) {
         StringBuilder reqUri = new StringBuilder(rawPath);
         int lastLineIndex = reqUri.lastIndexOf("/");
         String methodUri = null;
@@ -133,46 +147,6 @@ public class DispatcherServlet extends HttpServlet {
             reqUri.delete(lastLineIndex, reqUri.length());
             classUri = reqUri.toString();
         }
-        return new ServiceInfo(classUri, methodUri);
-    }
-
-    static class ServiceInfo {
-
-        private String mRequestMethod;
-
-        private HttpServletResponse mResponse;
-
-        private String mClassPath;
-
-        private String mMethodPath;
-
-        public ServiceInfo(String classPath, String methodPath) {
-            mClassPath = classPath;
-            mMethodPath = methodPath;
-        }
-
-        public String getClassPath() {
-            return mClassPath;
-        }
-
-        public void setClassPath(String classPath) {
-            mClassPath = classPath;
-        }
-
-        public String getMethodPath() {
-            return mMethodPath;
-        }
-
-        public void setMethodPath(String methodPath) {
-            mMethodPath = methodPath;
-        }
-
-        public String getRequestMethod() {
-            return mRequestMethod;
-        }
-
-        public void setRequestMethod(String requestMethod) {
-            mRequestMethod = requestMethod.toUpperCase();
-        }
+        return new ServiceInfoModel(classUri, methodUri);
     }
 }

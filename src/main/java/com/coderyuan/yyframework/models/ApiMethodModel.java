@@ -23,6 +23,7 @@ import com.coderyuan.yyframework.annotations.RequestMethod;
 public class ApiMethodModel {
 
     private Method mMethod;
+
     private RequestMethod.MethodEnum mRequestMethod;
 
     public RequestMethod.MethodEnum getRequestMethod() {
