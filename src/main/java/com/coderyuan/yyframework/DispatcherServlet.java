@@ -12,13 +12,8 @@
 package com.coderyuan.yyframework;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -31,6 +26,8 @@ import com.coderyuan.yyframework.classscanner.ClassScanner;
 import com.coderyuan.yyframework.db.DbUtils;
 import com.coderyuan.yyframework.models.ApiClassModel;
 import com.coderyuan.yyframework.models.ApiMethodModel;
+import com.coderyuan.yyframework.models.ErrorTypes;
+import com.coderyuan.yyframework.settings.Constants;
 import com.coderyuan.yyframework.utils.JsonUtil;
 
 /**
@@ -40,44 +37,9 @@ import com.coderyuan.yyframework.utils.JsonUtil;
  */
 public class DispatcherServlet extends HttpServlet {
 
-    /**
-     * Database InitParams Constants
-     */
-    private static final String DB_DRIVER = "db-driver";
-    private static final String DB_URL = "db-url";
-    private static final String DB_USERNAME = "db-username";
-    private static final String DB_PASSWORD = "db-password";
-
-    /**
-     * Charsets
-     */
-    private static final String DES_CHARSET = "utf-8";
-
-    /**
-     * Code Names
-     */
-    private static final String API_EXT = "Api";
-    private static final String ENTER_METHOD_NAME = "handleRequest";
-    private static final String GET_FLAG_NAME = "mAllowGet";
-
-    /**
-     * Formats
-     */
-    private static final String FULL_FORMAT = "%s.%s";
-    private static final String CLASS_FORMAT = "%s%s";
-
     private static Map<String, ApiClassModel> sClassRouteMap;
 
-    private Class<?> mApiClass = null;
-    private Object mApiNewInstance = null;
-    private Method mOperationMethod = null;
-
-    private boolean mAllowGet = true;
-    private String mRestParam = null;
     private Map<String, String[]> mParams;
-
-    private HttpServletRequest mRequest;
-    private HttpServletResponse mResponse;
 
     @Override
     public void init() throws ServletException {
@@ -86,29 +48,78 @@ public class DispatcherServlet extends HttpServlet {
     }
 
     private void scanApiClass() {
-        String basePackage = getServletConfig().getInitParameter("base-package");
+        String basePackage = getServletConfig().getInitParameter(Constants.BASE_PACKAGE);
         ClassScanner scanner = new ClassScanner();
         scanner.doScan(basePackage, true);
         sClassRouteMap = scanner.getClasses();
     }
 
     private void initDataBase() {
-        String dbDriver = getServletContext().getInitParameter(DB_DRIVER);
-        String dbUrl = getServletContext().getInitParameter(DB_URL);
-        String dbUserName = getServletContext().getInitParameter(DB_USERNAME);
-        String dbPassword = getServletContext().getInitParameter(DB_PASSWORD);
+        String dbDriver = getServletContext().getInitParameter(Constants.DB_DRIVER);
+        String dbUrl = getServletContext().getInitParameter(Constants.DB_URL);
+        String dbUserName = getServletContext().getInitParameter(Constants.DB_USERNAME);
+        String dbPassword = getServletContext().getInitParameter(Constants.DB_PASSWORD);
         DbUtils.init(dbDriver, dbUrl, dbUserName, dbPassword);
     }
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        StringBuilder reqUri = new StringBuilder(req.getRequestURI().replace(req.getServletPath(), ""));
+        req.setCharacterEncoding(Constants.CHARSET);
+        String rawPath = req.getRequestURI().replace(req.getServletPath(), "");
+        ServiceInfo serviceInfo = parsePath(rawPath);
+        if (serviceInfo == null) {
+            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
+            return;
+        }
+        createClassInstance(serviceInfo);
+    }
+
+    private Object createClassInstance(HttpServletRequest req, HttpServletResponse res, ServiceInfo serviceInfo) {
+        try {
+            ApiClassModel clsModel = sClassRouteMap.get(serviceInfo.getClassPath());
+            if (clsModel == null) {
+                JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
+                return null;
+            }
+            if (clsModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
+                if (!req.getMethod().toUpperCase().equals(clsModel.getRequestMethod().toString())) {
+                    mJsonUtil.writeJson(ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
+                    return null;
+                }
+            }
+            Class<?> cls = clsModel.getApiClass();
+            return cls.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            e.printStackTrace();
+            mJsonUtil.writeJson(ApiResultManager.getErrorResult(ErrorTypes.SERVER_ERROR));
+            return null;
+        }
+    }
+
+    private void invokeMethod(HttpServletRequest req, ServiceInfo serviceInfo,
+                              ApiClassModel clsModel, Object instance)
+            throws IOException, IllegalAccessException, InvocationTargetException {
+        ApiMethodModel methodModel = clsModel.getMethods().get(serviceInfo.getMethodPath());
+        if (methodModel == null) {
+            mJsonUtil.writeJson(ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
+            return;
+        }
+        if (methodModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
+            if (!req.getMethod().toUpperCase().equals(methodModel.getRequestMethod().toString())) {
+                mJsonUtil.writeJson(ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
+                return;
+            }
+        }
+        methodModel.getMethod().invoke(instance);
+    }
+
+    private ServiceInfo parsePath(String rawPath) {
+        StringBuilder reqUri = new StringBuilder(rawPath);
         int lastLineIndex = reqUri.lastIndexOf("/");
         String methodUri = null;
         String classUri = null;
         if (lastLineIndex == -1 || (lastLineIndex == 0 && reqUri.length() == 1)) {
-            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ApiResultManager.ErrorTypes.NOT_FOUND));
-            return;
+            return null;
         }
         while (lastLineIndex == reqUri.length() - 1) {
             reqUri.delete(lastLineIndex, reqUri.length());
@@ -122,36 +133,46 @@ public class DispatcherServlet extends HttpServlet {
             reqUri.delete(lastLineIndex, reqUri.length());
             classUri = reqUri.toString();
         }
-        try {
-            ApiClassModel clsModel = sClassRouteMap.get(classUri);
-            if (clsModel == null) {
-                JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ApiResultManager.ErrorTypes.NOT_FOUND));
-                return;
-            }
-            if (clsModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
-                if (!req.getMethod().toUpperCase().equals(clsModel.getRequestMethod().toString())) {
-                    JsonUtil.writeJson(res,
-                            ApiResultManager.getErrorResult(ApiResultManager.ErrorTypes.METHOD_NOT_ALLOW));
-                    return;
-                }
-            }
-            Class<?> cls = clsModel.getApiClass();
-            Object instance = cls.newInstance();
-            ApiMethodModel methodModel = clsModel.getMethods().get(methodUri);
-            if (methodModel == null) {
-                JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ApiResultManager.ErrorTypes.NOT_FOUND));
-                return;
-            }
-            if (methodModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
-                if (!req.getMethod().toUpperCase().equals(methodModel.getRequestMethod().toString())) {
-                    JsonUtil.writeJson(res,
-                            ApiResultManager.getErrorResult(ApiResultManager.ErrorTypes.METHOD_NOT_ALLOW));
-                    return;
-                }
-            }
-            methodModel.getMethod().invoke(instance);
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+        return new ServiceInfo(classUri, methodUri);
+    }
+
+    static class ServiceInfo {
+
+        private String mRequestMethod;
+
+        private HttpServletResponse mResponse;
+
+        private String mClassPath;
+
+        private String mMethodPath;
+
+        public ServiceInfo(String classPath, String methodPath) {
+            mClassPath = classPath;
+            mMethodPath = methodPath;
+        }
+
+        public String getClassPath() {
+            return mClassPath;
+        }
+
+        public void setClassPath(String classPath) {
+            mClassPath = classPath;
+        }
+
+        public String getMethodPath() {
+            return mMethodPath;
+        }
+
+        public void setMethodPath(String methodPath) {
+            mMethodPath = methodPath;
+        }
+
+        public String getRequestMethod() {
+            return mRequestMethod;
+        }
+
+        public void setRequestMethod(String requestMethod) {
+            mRequestMethod = requestMethod.toUpperCase();
         }
     }
 }

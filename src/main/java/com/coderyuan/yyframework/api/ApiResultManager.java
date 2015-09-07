@@ -11,16 +11,10 @@
  */
 package com.coderyuan.yyframework.api;
 
-import java.util.Objects;
-
+import com.coderyuan.yyframework.models.ErrorTypes;
 import com.coderyuan.yyframework.models.ResultModel;
 
 public class ApiResultManager {
-
-    public enum ErrorTypes {
-        NOT_FOUND, SERVER_ERROR, PARAM_ERROR, DB_ERROR, METHOD_NOT_ALLOW, USER_NOT_EXISTED, USER_EXISTED,
-        USER_NOT_AVAILABLE, NOT_LOGIN, VERIFIED_FAILED, ITEM_ADDED, UNKNOWN_ERROR
-    }
 
     private static final int ERROR_STATE = -1;
     private static final int SUCCESS_STATE = 0;

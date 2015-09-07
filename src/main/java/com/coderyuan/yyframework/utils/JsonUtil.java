@@ -16,8 +16,12 @@ import java.io.PrintWriter;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.coderyuan.yyframework.api.ApiResultManager;
+import com.coderyuan.yyframework.models.ErrorTypes;
 import com.coderyuan.yyframework.models.ResultModel;
+import com.coderyuan.yyframework.settings.Constants;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
@@ -25,44 +29,73 @@ import com.google.gson.GsonBuilder;
 
 public class JsonUtil {
 
-    static Gson sGson = new GsonBuilder().setExclusionStrategies(new JsonKit("mRawOutput", "mJsonpMode"))
+    private static Gson sSerialization = new GsonBuilder()
+            .setExclusionStrategies(new JsonKit("mRawOutput", "mJsonpMode"))
             .serializeNulls().create();
 
-    public static void writeJson(HttpServletResponse res, ResultModel obj) throws IOException {
-        res.setContentType("application/json;\tcharset=utf-8");
-        res.setCharacterEncoding("utf-8");
+    private static Gson sDeserialization = new Gson();
+
+    private HttpServletResponse mResponse;
+
+    public JsonUtil(HttpServletResponse response) {
+        mResponse = response;
+    }
+
+    public static Gson getGson() {
+        return sDeserialization;
+    }
+
+    public static String toJson(Object obj) {
+        try {
+            return sSerialization.toJson(obj);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Constants.JSON_ERROR;
+        }
+    }
+
+    public static void writeJson(HttpServletResponse res, ResultModel obj) {
+        try {
+            doWrite(res, obj, null);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void writeJson(HttpServletResponse res, ResultModel obj, String callback) {
+        try {
+            doWrite(res, obj, callback);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void doWrite(HttpServletResponse res, ResultModel obj, String callback) throws IOException {
+        res.setContentType(Constants.RESPONSE_MIME);
+        res.setCharacterEncoding(Constants.CHARSET);
         PrintWriter writer = res.getWriter();
         if (obj == null) {
-            obj = ApiResultManager.getErrorResult(ApiResultManager.ErrorTypes.UNKNOWN_ERROR);
+            obj = ApiResultManager.getErrorResult(ErrorTypes.UNKNOWN_ERROR);
+        }
+        if (!StringUtils.isEmpty(callback)) {
+            writer.write(callback + "(");
         }
         if (obj.getRawOutput()) {
             writer.write(obj.getData().toString());
         } else {
             writer.write(toJson(obj));
         }
-    }
-
-    public static String toJson(Object obj) {
-        try {
-            return sGson.toJson(obj);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"status\":false,\"msg\":\"JSON_ERROR\"}";
+        if (!StringUtils.isEmpty(callback)) {
+            writer.write(")");
         }
     }
 
-    public static void writeJson(HttpServletResponse res, ResultModel obj, String callback) throws IOException {
-        res.setContentType("application/json;\tcharset=utf-8");
-        res.setCharacterEncoding("utf-8");
-        PrintWriter writer = res.getWriter();
-        if (obj == null) {
-            obj = ApiResultManager.getErrorResult(ApiResultManager.ErrorTypes.UNKNOWN_ERROR);
-        }
-        if (obj.getRawOutput()) {
-            writer.write(String.format("%s(%s)", callback, obj.getData().toString()));
-        } else {
-            writer.write(String.format("%s(%s)", callback, toJson(obj)));
-        }
+    public void writeJson(ResultModel obj) {
+        writeJson(mResponse, obj);
+    }
+
+    public void writeJson(ResultModel obj, String callback) {
+        writeJson(mResponse, obj, callback);
     }
 
     static class JsonKit implements ExclusionStrategy {

@@ -24,7 +24,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import com.coderyuan.yyframework.api.ApiResultManager.ErrorTypes;
+import com.coderyuan.yyframework.models.ErrorTypes;
 import com.coderyuan.yyframework.utils.JsonUtil;
 
 /**
