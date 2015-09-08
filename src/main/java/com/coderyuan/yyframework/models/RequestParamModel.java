@@ -27,11 +27,6 @@ public class RequestParamModel<T> {
 
     private T mParams;
 
-    public RequestParamModel(ServletHttpModel servlet, T params) {
-        mServlet = servlet;
-        mParams = params;
-    }
-
     public T getParams() {
         return mParams;
     }

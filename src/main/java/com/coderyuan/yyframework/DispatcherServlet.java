@@ -27,6 +27,7 @@ import com.coderyuan.yyframework.db.DbUtils;
 import com.coderyuan.yyframework.models.ApiClassModel;
 import com.coderyuan.yyframework.models.ApiMethodModel;
 import com.coderyuan.yyframework.models.ErrorTypes;
+import com.coderyuan.yyframework.models.RequestParamModel;
 import com.coderyuan.yyframework.models.ServiceInfoModel;
 import com.coderyuan.yyframework.models.ServletHttpModel;
 import com.coderyuan.yyframework.settings.Constants;
@@ -67,7 +68,11 @@ public class DispatcherServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         req.setCharacterEncoding(Constants.CHARSET);
-        String rawPath = req.getRequestURI().replace(req.getServletPath(), "");
+        String rawPath =
+                req.getRequestURI().replace(req.getServletPath(), "").replaceAll("\\\\", "");
+        while (rawPath.contains("//")) {
+            rawPath = rawPath.replaceAll("//", "/");
+        }
         ServiceInfoModel serviceInfo = parsePath(rawPath);
         if (serviceInfo == null) {
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
@@ -78,6 +83,8 @@ public class DispatcherServlet extends HttpServlet {
         if (classInstance == null) {
             return;
         }
+        RequestParamModel<?> reqParam = new RequestParamModel<>();
+        reqParam.setServlet(serviceInfo.getServlet());
         invokeMethod(serviceInfo, classInstance);
     }
 
