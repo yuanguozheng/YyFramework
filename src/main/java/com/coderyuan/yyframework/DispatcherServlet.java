@@ -13,12 +13,16 @@ package com.coderyuan.yyframework;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.coderyuan.yyframework.annotations.RequestMethod;
 import com.coderyuan.yyframework.api.ApiResultManager;
@@ -40,7 +44,7 @@ import com.coderyuan.yyframework.utils.JsonUtil;
  */
 public class DispatcherServlet extends HttpServlet {
 
-    private static Map<String, ApiClassModel> sClassRouteMap;
+    private static Map<String, ApiClassModel> sClassRouteMap = new HashMap<>();
 
     @Override
     public void init() throws ServletException {
@@ -50,6 +54,9 @@ public class DispatcherServlet extends HttpServlet {
 
     private void scanApiClass() {
         String basePackage = getServletConfig().getInitParameter(Constants.BASE_PACKAGE);
+        if (StringUtils.isEmpty(basePackage)) {
+            return;
+        }
         ClassScanner scanner = new ClassScanner();
         scanner.doScan(basePackage, true);
         sClassRouteMap = scanner.getClasses();
@@ -65,6 +72,10 @@ public class DispatcherServlet extends HttpServlet {
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+        if (sClassRouteMap.size() == 0) {
+            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
+            return;
+        }
         req.setCharacterEncoding(Constants.CHARSET);
         String rawPath = req.getRequestURI().replace(req.getServletPath(), "");
         ServiceInfoModel serviceInfo = parsePath(rawPath);
@@ -122,7 +133,10 @@ public class DispatcherServlet extends HttpServlet {
         RequestParamModel reqParams = new RequestParamModel(serviceInfo.getServlet());
         reqParams.setStringParams(req.getParameterMap());
         try {
-            methodModel.getMethod().invoke(classInstance, reqParams);
+            Method method = methodModel.getMethod();
+            if (method.getParameterCount() != 0) {
+                method.invoke(classInstance, reqParams);
+            }
         } catch (IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }
