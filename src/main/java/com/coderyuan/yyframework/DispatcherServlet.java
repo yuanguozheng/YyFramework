@@ -42,8 +42,6 @@ public class DispatcherServlet extends HttpServlet {
 
     private static Map<String, ApiClassModel> sClassRouteMap;
 
-    private Map<String, String[]> mParams;
-
     @Override
     public void init() throws ServletException {
         initDataBase();
@@ -68,11 +66,7 @@ public class DispatcherServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         req.setCharacterEncoding(Constants.CHARSET);
-        String rawPath =
-                req.getRequestURI().replace(req.getServletPath(), "").replaceAll("\\\\", "");
-        while (rawPath.contains("//")) {
-            rawPath = rawPath.replaceAll("//", "/");
-        }
+        String rawPath = req.getRequestURI().replace(req.getServletPath(), "");
         ServiceInfoModel serviceInfo = parsePath(rawPath);
         if (serviceInfo == null) {
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
@@ -83,8 +77,6 @@ public class DispatcherServlet extends HttpServlet {
         if (classInstance == null) {
             return;
         }
-        RequestParamModel<?> reqParam = new RequestParamModel<>();
-        reqParam.setServlet(serviceInfo.getServlet());
         invokeMethod(serviceInfo, classInstance);
     }
 
@@ -127,8 +119,10 @@ public class DispatcherServlet extends HttpServlet {
                 return;
             }
         }
+        RequestParamModel reqParams = new RequestParamModel(serviceInfo.getServlet());
+        reqParams.setStringParams(req.getParameterMap());
         try {
-            methodModel.getMethod().invoke(classInstance);
+            methodModel.getMethod().invoke(classInstance, reqParams);
         } catch (IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }

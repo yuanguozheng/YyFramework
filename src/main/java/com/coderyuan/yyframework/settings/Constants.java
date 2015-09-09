@@ -26,7 +26,9 @@ public interface Constants {
 
     String POST = "POST";
 
-    String JSON_ERROR = "{\"status\":false,\"data\":null,\"err\":\"JSON_ERROR\"}";
+    String JSON_ERROR = "{\"status\":-1,\"data\":null,\"err\":\"JSON_ERROR\"}";
+
+    String BAD_ERROR = "{\"status\":-1,\"data\":null,\"err\":\"BAD_SERVER_ERROR\"}";
 
     /**
      * Database InitParams Constants
