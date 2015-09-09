@@ -84,6 +84,12 @@ public class RequestParamModel {
                 obj = Long.parseLong(rawValue);
             } else if (desType == Date.class) {
                 obj = TimeUtils.parseDate(rawValue);
+            } else if (desType == Short.class) {
+                obj = Short.parseShort(rawValue);
+            } else if (desType == Byte.class) {
+                obj = Byte.parseByte(rawValue);
+            } else if (desType == Boolean.class) {
+                obj = Boolean.parseBoolean(rawValue);
             } else {
                 obj = null;
             }
