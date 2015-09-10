@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2015 coderyuan.com. All Rights Reserved.
  * <p>
- * CoderyuanApiLib
+ * YyFramework
  * <p>
  * XmlParser.java created on 上午11:40
  *

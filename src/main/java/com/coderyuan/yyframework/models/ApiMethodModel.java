@@ -26,6 +26,8 @@ public class ApiMethodModel {
 
     private RequestMethod.MethodEnum mRequestMethod;
 
+    private boolean mIsFileRequest = false;
+
     public RequestMethod.MethodEnum getRequestMethod() {
         return mRequestMethod;
     }
@@ -40,5 +42,13 @@ public class ApiMethodModel {
 
     public void setMethod(Method method) {
         mMethod = method;
+    }
+
+    public boolean isFileRequest() {
+        return mIsFileRequest;
+    }
+
+    public void setIsFileRequest(boolean isFileRequest) {
+        mIsFileRequest = isFileRequest;
     }
 }

@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2015 coderyuan.com. All Rights Reserved.
  *
- * CoderyuanApiLib
+ * YyFramework
  *
  * TokenUtil.java created on 2015年7月9日
  *

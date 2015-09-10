@@ -14,7 +14,10 @@ package com.coderyuan.yyframework.models;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.fileupload.FileItem;
 
 import com.coderyuan.yyframework.utils.TimeUtils;
 
@@ -27,17 +30,21 @@ public class RequestParamModel {
 
     private ServletHttpModel mServlet;
 
-    private Map<String, String[]> mStringParams;
+    private Map<String, String> mStringParams;
+
+    private Map<String, FileItem> mFiles;
 
     public RequestParamModel(ServletHttpModel servlet) {
         mServlet = servlet;
+        mStringParams = new HashMap<>();
+        mFiles = new HashMap<>();
     }
 
-    public Map<String, String[]> getStringParams() {
+    public Map<String, String> getStringParams() {
         return mStringParams;
     }
 
-    public void setStringParams(Map<String, String[]> stringParams) {
+    public void setStringParams(Map<String, String> stringParams) {
         mStringParams = stringParams;
     }
 
@@ -56,7 +63,17 @@ public class RequestParamModel {
                 try {
                     Field field = modelClass.getDeclaredField(pName);
                     field.setAccessible(true);
-                    Object desValue = convertType(field.getType(), mStringParams.get(pName)[0]);
+                    Object desValue = convertType(field.getType(), mStringParams.get(pName));
+                    field.set(instance, desValue);
+                } catch (NoSuchFieldException e) {
+                    e.printStackTrace();
+                }
+            }
+            for (String fpName : mFiles.keySet()) {
+                try {
+                    Field field = modelClass.getDeclaredField(fpName);
+                    field.setAccessible(true);
+                    Object desValue = (FileItem) mFiles.get(fpName);
                     field.set(instance, desValue);
                 } catch (NoSuchFieldException e) {
                     e.printStackTrace();
@@ -98,5 +115,13 @@ public class RequestParamModel {
             obj = null;
         }
         return obj;
+    }
+
+    public Map<String, FileItem> getFiles() {
+        return mFiles;
+    }
+
+    public void setFiles(Map<String, FileItem> files) {
+        mFiles = files;
     }
 }

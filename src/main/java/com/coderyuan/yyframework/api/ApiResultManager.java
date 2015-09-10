@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2015 coderyuan.com. All Rights Reserved.
  * <p>
- * CoderyuanApiLib
+ * YyFramework
  * <p>
  * ApiResultManager.java created on 2015年6月17日
  *

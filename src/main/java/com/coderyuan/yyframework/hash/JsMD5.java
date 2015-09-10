@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2015 ibenchu.com. All Rights Reserved.
  *
- * CoderyuanApiLib
+ * YyFramework
  *
  * JsMD5.java created on 下午11:27
  *

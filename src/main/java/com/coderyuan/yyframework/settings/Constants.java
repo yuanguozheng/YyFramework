@@ -39,4 +39,13 @@ public interface Constants {
     String DB_PASSWORD = "db-password";
 
     String BASE_PACKAGE = "base-package";
+
+    String MAX_FILE_UPLOAD_SIZE = "max-file-size";
+
+    long KB = 1024;
+    long MB = KB * KB;
+    long GB = MB * KB;
+    long TB = GB * KB;
+
+    long DEFAULT_FILE_SIZE = 1 * GB;
 }

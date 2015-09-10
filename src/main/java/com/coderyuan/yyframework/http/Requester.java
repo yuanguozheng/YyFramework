@@ -1,71 +1,51 @@
 /**
  * Copyright (C) 2015 coderyuan.com. All Rights Reserved.
  *
- * CoderyuanApiLib
+ * YyFramework
  *
  * Requester.java created on 2015年7月9日
  *
  * @author yuanguozheng
- * @since 2015年7月9日
  * @version v1.0.0
+ * @since 2015年7月9日
  */
 package com.coderyuan.yyframework.http;
-
-import java.util.HashMap;
-import java.util.TreeMap;
-
-import org.apache.commons.lang3.StringUtils;
 
 import com.coderyuan.yyframework.http.HttpUtil.Method;
 
 /**
+ * 快速HTTP请求工具
+ *
  * @author yuanguozheng
- * 
  */
 public class Requester {
 
     private static HttpUtil sGetUtil;
     private static HttpUtil sPostUtil;
 
-    public static String doGet(String uri) {
+    public static HttpResponseModel requestWithModel(HttpRequestModel reqModel) {
         if (sGetUtil == null) {
             sGetUtil = new HttpUtil(Method.GET);
         }
-        sGetUtil.setUrl(uri);
-        HttpResponseModel response = sGetUtil.request();
-        if (!StringUtils.isBlank(response.getData())) {
-            return response.getData();
+        if (sPostUtil == null) {
+            sPostUtil = new HttpUtil(Method.POST);
         }
-        return null;
+        HttpUtil util = reqModel.getMethod() == Method.GET ? sGetUtil : sPostUtil;
+        util.clear();
+        util.setUrl(reqModel.getUrl());
+        util.setHeaders(reqModel.getHeaders());
+        util.setRequestStringParams(reqModel.getStringParams());
+        util.setNeedUrlencoded(reqModel.getNeedUrlEncoded());
+        return util.request();
     }
 
-    public static String doPost(String uri, HashMap<String, String> params) {
+    public static HttpResponseModel postWithRawUrlParams(String url, String params) {
         if (sPostUtil == null) {
             sPostUtil = new HttpUtil(Method.POST);
         }
         sPostUtil.clear();
-        sPostUtil.setUrl(uri);
-        sPostUtil.setRequestStringParams(params);
-        HttpResponseModel response = sPostUtil.request();
-        if (!StringUtils.isBlank(response.getData())) {
-            return response.getData();
-        }
-        return null;
-    }
-
-    public static String doPost(String uri, TreeMap<String, String> params) {
-        if (sPostUtil == null) {
-            sPostUtil = new HttpUtil(Method.POST);
-        }
-        sPostUtil.clear();
-        sPostUtil.setUrl(uri);
-        for (String key : params.keySet()) {
-            sPostUtil.addParam(key, params.get(key));
-        }
-        HttpResponseModel response = sPostUtil.request();
-        if (!StringUtils.isBlank(response.getData())) {
-            return response.getData();
-        }
-        return null;
+        sPostUtil.setUrl(url);
+        sPostUtil.setDirectWriteParams(params);
+        return sPostUtil.request();
     }
 }

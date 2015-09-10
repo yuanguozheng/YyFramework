@@ -1,16 +1,27 @@
+/**
+ * Copyright (C) 2015 coderyuan.com. All Rights Reserved.
+ *
+ * YyFramework
+ *
+ * HttpUtil.java created on 2015年9月10日
+ *
+ * @author yuanguozheng
+ * @version v1.0.0
+ * @since 2015年9月10日
+ */
 package com.coderyuan.yyframework.http;
 
-import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,9 +29,13 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.coderyuan.yyframework.models.FileModel;
 import com.coderyuan.yyframework.utils.StreamUtil;
 
+/**
+ * HttpUtl
+ *
+ * @author yuanguozheng
+ */
 public class HttpUtil {
 
     public enum Method {
@@ -45,9 +60,9 @@ public class HttpUtil {
 
     private static final String HEADER_CONNECTION = "Connection";
 
-    private static final String STRINGPARAM_FORMAT = "Content-Disposition: form-data; name=\"%s\"";
+    private static final String STRING_PARAM_FORMAT = "Content-Disposition: form-data; name=\"%s\"";
 
-    private static final String FILEPARMA_FORMAT = "Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"";
+    private static final String FILE_PARAM_FORMAT = "Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"";
 
     private static final int TIME_OUT = 30 * 1000;
 
@@ -61,12 +76,13 @@ public class HttpUtil {
     private HttpURLConnection mConnection;
     private OutputStream mOutputStream;
     private HashMap<String, String> mStringParamsMap;
-    private ArrayList<FileModel> mFiles;
+    private ArrayList<HttpFileModel> mFiles;
     private Method mMethod;
     private String mServerUrl;
-    private Map<String, List<String>> mResponseHeaders;
     private Map<String, String> mRequestHeaders;
-    private boolean mDirectWriteParams;
+    private boolean mDirectWriteParams = false;
+    private String mDirectParams;
+    private boolean mNeedUrlencoded = false;
 
     /**
      * 构造函数，初始化Http工具类
@@ -79,9 +95,9 @@ public class HttpUtil {
             return;
         }
         mMethod = method;
-        mStringParamsMap = new HashMap<String, String>();
+        mStringParamsMap = new HashMap<>();
         if (mMethod == Method.POST_FILE) {
-            mFiles = new ArrayList<FileModel>();
+            mFiles = new ArrayList<>();
         }
     }
 
@@ -91,11 +107,15 @@ public class HttpUtil {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        String result = doRequest();
-        HttpResponseModel data = new HttpResponseModel();
-        data.setData(result);
-        data.setHeaders(mResponseHeaders);
-        return data;
+        return doRequest();
+    }
+
+    public void addUrlEncodedParam(String key, String value) {
+        try {
+            addParam(key, URLEncoder.encode(value, CHARSET));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -105,8 +125,11 @@ public class HttpUtil {
      * @param 值
      */
     public void addParam(String key, String value) {
+        if (StringUtils.isEmpty(key)) {
+            return;
+        }
         if (mStringParamsMap == null) {
-            mStringParamsMap = new HashMap<String, String>();
+            mStringParamsMap = new HashMap<>();
         }
         mStringParamsMap.put(key, value);
     }
@@ -116,12 +139,12 @@ public class HttpUtil {
      *
      * @param 文件信息
      */
-    public void addFile(FileModel fileModel) {
+    public void addFile(HttpFileModel fileModel) {
         if (mMethod != Method.POST_FILE) {
             return;
         }
         if (mFiles == null) {
-            mFiles = new ArrayList<FileModel>();
+            mFiles = new ArrayList<>();
         }
         mFiles.add(fileModel);
     }
@@ -145,7 +168,10 @@ public class HttpUtil {
      * @param params
      */
     public void setDirectWriteParams(String params) {
-        mDirectWriteParams = true;
+        if (!StringUtils.isEmpty(params)) {
+            mDirectWriteParams = true;
+            mDirectParams = params;
+        }
     }
 
     /**
@@ -153,9 +179,19 @@ public class HttpUtil {
      *
      * @param 文件列表
      */
-    public void setFiles(ArrayList<FileModel> files) {
+    public void setFiles(ArrayList<HttpFileModel> files) {
         if (mMethod == Method.POST_FILE) {
             mFiles = files;
+        }
+    }
+
+    public void setHeaderValue(String key, String value) {
+        if (mRequestHeaders != null) {
+            if (mRequestHeaders.containsKey(key)) {
+                mRequestHeaders.replace(key, value);
+            } else {
+                mRequestHeaders.put(key, value);
+            }
         }
     }
 
@@ -165,6 +201,14 @@ public class HttpUtil {
 
     public void setRequestStringParams(HashMap<String, String> map) {
         mStringParamsMap = map;
+    }
+
+    public boolean isNeedUrlencoded() {
+        return mNeedUrlencoded;
+    }
+
+    public void setNeedUrlencoded(boolean needUrlencoded) {
+        mNeedUrlencoded = needUrlencoded;
     }
 
     public void clear() {
@@ -184,20 +228,24 @@ public class HttpUtil {
      *
      * @return 服务器返回字符串，出错返回null
      */
-    private String doRequest() {
+    private HttpResponseModel doRequest() {
+        HttpResponseModel responseModel = new HttpResponseModel();
+        responseModel.setHttpCode(-1);
         try {
-            mResponseHeaders = mConnection.getHeaderFields();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(mConnection.getInputStream()));
-            StringBuilder builder = new StringBuilder();
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-                builder.append(line);
-            }
-            return builder.toString();
+            responseModel.setHttpCode(mConnection.getResponseCode());
+            responseModel.setErrorMsg(mConnection.getResponseMessage());
+            Map<String, List<String>> responseHeaders = mConnection.getHeaderFields();
+            InputStream is = mConnection.getInputStream();
+            responseModel.setHeaders(responseHeaders);
+            responseModel.setInputStream(is);
+            return responseModel;
         } catch (IOException e) {
             e.printStackTrace();
+            if (StringUtils.isEmpty(responseModel.getErrorMsg())) {
+                responseModel.setErrorMsg(e.getCause().toString());
+            }
         }
-        return null;
+        return responseModel;
     }
 
     /**
@@ -209,14 +257,9 @@ public class HttpUtil {
         if (StringUtils.isEmpty(mServerUrl)) {
             return;
         }
-        StringBuilder builder = new StringBuilder();
-        try {
-            if (mServerUrl.contains("?")) {
-                buildStringParam(builder, true);
-            }
-            mUrl = new URL(mServerUrl + builder.toString());
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
+        buildStringParam();
+        if (mMethod == Method.GET) {
+            buildGetRequest();
         }
         if (mUrl == null) {
             return;
@@ -225,9 +268,12 @@ public class HttpUtil {
         if (mConnection == null) {
             return;
         }
-        if (mMethod == Method.GET) {
-            return;
+        if (mMethod != Method.GET) {
+            buildPostRequest();
         }
+    }
+
+    private void buildPostRequest() {
         try {
             mOutputStream = new DataOutputStream(mConnection.getOutputStream());
             boolean hasFileParam = buildFileBody();
@@ -245,6 +291,21 @@ public class HttpUtil {
             } finally {
                 StreamUtil.closeQuietly(mOutputStream);
             }
+        }
+    }
+
+    private void buildGetRequest() {
+        try {
+            StringBuilder getParamBuilder = new StringBuilder(mServerUrl);
+            if (!StringUtils.isEmpty(mDirectParams)) {
+                if (getParamBuilder.indexOf("?") == -1) {
+                    getParamBuilder.append("?");
+                }
+                getParamBuilder.append(mDirectParams);
+            }
+            mUrl = new URL(getParamBuilder.toString());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
         }
     }
 
@@ -285,49 +346,48 @@ public class HttpUtil {
      *
      * @return 是否含有字符串参数
      *
-     * @throws IOException
-     */
-    private boolean buildStringParam() throws IOException {
-        return buildStringParam(null, false);
-    }
-
-    /**
-     * 构建字符串参数请求体（支持外传builder）
-     *
-     * @param outBuilder，外部builder
-     *
-     * @return 是否含有字符串参数
-     *
      * @throws IOException，写入流失败时抛出异常
      */
-    private boolean buildStringParam(StringBuilder outBuilder, boolean append) throws IOException {
+    private boolean buildStringParam() throws IOException {
         if ((mStringParamsMap == null) || (mStringParamsMap.size() == 0)) {
             return false;
         }
         StringBuilder builder = new StringBuilder();
-        if ((mMethod == Method.GET) && !append) {
-            builder.append("?");
-        }
-        for (String key : mStringParamsMap.keySet()) {
-            if (mMethod == Method.POST_FILE) {
-                buildMultipartString(builder, key);
-            } else {
-                buildUrlencodedString(builder, key);
-                builder.append("&");
+        if (mMethod == Method.POST && mDirectWriteParams) {
+            if (StringUtils.isEmpty(mDirectParams)) {
+                builder.append(mDirectParams);
             }
+        } else {
+            for (String key : mStringParamsMap.keySet()) {
+                if (mMethod == Method.POST_FILE) {
+                    buildMultipartString(builder, key);
+                } else {
+                    String value = mStringParamsMap.get(key);
+                    String kvString;
+                    if (mNeedUrlencoded) {
+                        kvString = String.format("%s=%s",
+                                URLEncoder.encode(key, CHARSET),
+                                URLEncoder.encode(value, CHARSET));
+                    } else {
+                        kvString = String.format("%s=%s", key, value);
+                    }
+                    builder.append(kvString);
+                    builder.append("&");
+                }
+            }
+        }
+        if (builder.length() == 0) {
+            return false;
         }
         if (mMethod != Method.POST_FILE) {
             builder.deleteCharAt(builder.length() - 1);
         }
         if (mMethod == Method.GET) {
-            outBuilder = builder;
+            mDirectParams = builder.toString();
             return true;
         }
-        if (builder.length() != 0) {
-            writeStringBytes(builder.toString());
-            return true;
-        }
-        return false;
+        writeStringBytes(builder.toString());
+        return true;
     }
 
     /**
@@ -341,25 +401,11 @@ public class HttpUtil {
         builder.append("--");
         builder.append(BOUNDARY);
         builder.append(RN);
-        builder.append(String.format(STRINGPARAM_FORMAT, key));
+        builder.append(String.format(STRING_PARAM_FORMAT, key));
         builder.append(RN);
         builder.append(RN);
         builder.append(value);
         builder.append(RN);
-    }
-
-    /**
-     * 构建Url转码格式的字符串参数
-     *
-     * @param builder，字符串builder
-     * @param key，键
-     *
-     * @throws UnsupportedEncodingException，URL转码失败时抛出异常
-     */
-    private void buildUrlencodedString(StringBuilder builder, String key) throws UnsupportedEncodingException {
-        String value = mStringParamsMap.get(key);
-        String kvString = String.format("%s=%s", key, value);
-        builder.append(kvString);
     }
 
     /**
@@ -385,17 +431,16 @@ public class HttpUtil {
         if ((mFiles == null) || (mFiles.size() == 0)) {
             return false;
         }
-        for (FileModel fileModel : mFiles) {
-            StringBuilder builder = new StringBuilder();
-            builder.append("--");
-            builder.append(BOUNDARY);
-            builder.append(RN);
-            builder.append(String.format(FILEPARMA_FORMAT, fileModel.getKey(), fileModel.getFileName()));
-            builder.append(RN);
-            builder.append("Content-Type: " + fileModel.getMime());
-            builder.append(RN);
-            builder.append(RN);
-            writeStringBytes(builder.toString());
+        for (HttpFileModel fileModel : mFiles) {
+            writeStringBytes("--");
+            writeStringBytes(BOUNDARY);
+            writeStringBytes(RN);
+            writeStringBytes(String.format(FILE_PARAM_FORMAT, fileModel.getKey(), fileModel.getFileName()));
+            writeStringBytes(RN);
+            writeStringBytes("Content-Type: ");
+            writeStringBytes(fileModel.getMime());
+            writeStringBytes(RN);
+            writeStringBytes(RN);
             writeFileStream(fileModel.getFile());
             writeStringBytes(RN);
         }
@@ -412,11 +457,9 @@ public class HttpUtil {
         try {
             fis = new FileInputStream(file);
             byte[] buffer = new byte[1024];
-            int len = 0;
-            while ((len = fis.read(buffer)) != -1) {
+            while (fis.read(buffer) != -1) {
                 mOutputStream.write(buffer);
             }
-            System.out.println("Flie Length: " + len);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {

@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2015 coderyuan.com. All Rights Reserved.
  * <p>
- * CoderyuanApiLib
+ * YyFramework
  * <p>
  * DbConnectionModel.java created on 上午11:58
  *

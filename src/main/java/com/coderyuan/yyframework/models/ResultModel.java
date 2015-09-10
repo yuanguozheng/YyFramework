@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2015 coderyuan.com. All Rights Reserved.
  * <p>
- * CoderyuanApiLib
+ * YyFramework
  * <p>
  * ResultModel.java created on 2015年6月17日
  *
@@ -26,8 +26,6 @@ public class ResultModel<T> {
 
     private boolean mRawOutput = false;
 
-    private boolean mJsonpMode = false;
-
     public int getStatus() {
         return mStatus;
     }
@@ -44,24 +42,12 @@ public class ResultModel<T> {
         mData = data;
     }
 
-    public boolean isRawOutput() {
-        return mRawOutput;
-    }
-
     public boolean getRawOutput() {
         return mRawOutput;
     }
 
     public void setRawOutput(boolean rawOutput) {
         mRawOutput = rawOutput;
-    }
-
-    public boolean isJsonpMode() {
-        return mJsonpMode;
-    }
-
-    public void useJsonp() {
-        mJsonpMode = true;
     }
 
     public String getError() {

@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2015 coderyuan.com. All Rights Reserved.
  * <p>
- * CoderyuanApiLib
+ * YyFramework
  * <p>
  * JsonUtil.java created on 2015年6月17日
  *
@@ -30,7 +30,7 @@ import com.google.gson.GsonBuilder;
 public class JsonUtil {
 
     private static Gson sSerialization = new GsonBuilder()
-            .setExclusionStrategies(new JsonKit("mRawOutput", "mJsonpMode"))
+            .setExclusionStrategies(new JsonKit("mRawOutput"))
             .serializeNulls().create();
 
     private static Gson sDeserialization = new Gson();

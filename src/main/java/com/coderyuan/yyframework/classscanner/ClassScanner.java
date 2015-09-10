@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.Enumeration;
@@ -27,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.coderyuan.yyframework.annotations.RequestMethod;
 import com.coderyuan.yyframework.annotations.RequestPath;
+import com.coderyuan.yyframework.annotations.RequestWithFile;
 import com.coderyuan.yyframework.models.ApiClassModel;
 import com.coderyuan.yyframework.models.ApiMethodModel;
 import com.coderyuan.yyframework.models.ResultModel;
@@ -154,7 +156,7 @@ public class ClassScanner {
             if (StringUtils.isEmpty(requestPath.value())) {
                 continue;
             }
-            if (m.getModifiers() != 1) {
+            if (m.getModifiers() != Modifier.PUBLIC) {
                 continue;
             }
             if (m.getReturnType() != ResultModel.class) {
@@ -163,10 +165,14 @@ public class ClassScanner {
             ApiMethodModel methodModel = new ApiMethodModel();
             methodModel.setMethod(m);
             RequestMethod requestMethod = m.getAnnotation(RequestMethod.class);
+            RequestWithFile requestWithFile = m.getAnnotation(RequestWithFile.class);
             if (requestMethod == null) {
                 methodModel.setRequestMethod(RequestMethod.MethodEnum.ALL);
             } else {
                 methodModel.setRequestMethod(requestMethod.value());
+            }
+            if (requestWithFile != null) {
+                methodModel.setIsFileRequest(true);
             }
             methodsMap.put(requestPath.value(), methodModel);
         }

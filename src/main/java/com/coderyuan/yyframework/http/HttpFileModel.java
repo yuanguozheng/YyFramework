@@ -4,7 +4,7 @@
  * Created by: yuanguozheng
  * Created: 2015年4月20日 下午4:01:46
  */
-package com.coderyuan.yyframework.models;
+package com.coderyuan.yyframework.http;
 
 import java.io.File;
 
@@ -16,7 +16,7 @@ import com.coderyuan.yyframework.utils.FileUtils;
  * @author yuanguozheng
  * 
  */
-public class FileModel {
+public class HttpFileModel {
 
     private String mKey;
     private File mFile;
