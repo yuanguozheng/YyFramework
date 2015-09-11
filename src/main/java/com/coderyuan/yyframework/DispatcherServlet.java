@@ -171,9 +171,13 @@ public class DispatcherServlet extends HttpServlet {
         }
         try {
             Method method = methodModel.getMethod();
-            if (method.getParameterCount() != 0) {
-                method.invoke(classInstance, reqParams);
+            if (method.getParameterCount() == 1) {
+                if (method.getParameterTypes()[0] == RequestParamModel.class) {
+                    method.invoke(classInstance, reqParams);
+                    return;
+                }
             }
+            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
         } catch (IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }
