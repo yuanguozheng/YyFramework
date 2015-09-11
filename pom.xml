@@ -13,6 +13,7 @@
     <version>3.0</version>
     <packaging>jar</packaging>
     <build>
+        <sourceDirectory>src/main/java</sourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
