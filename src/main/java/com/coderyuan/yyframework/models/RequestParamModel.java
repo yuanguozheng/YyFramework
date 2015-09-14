@@ -30,14 +30,12 @@ public class RequestParamModel {
 
     private ServletHttpModel mServlet;
 
-    private Map<String, String> mStringParams;
+    private Map<String, String> mStringParams = new HashMap<String, String>();
 
-    private Map<String, FileItem> mFiles;
+    private Map<String, FileItem> mFiles = new HashMap<String, FileItem>();
 
     public RequestParamModel(ServletHttpModel servlet) {
         mServlet = servlet;
-        mStringParams = new HashMap<>();
-        mFiles = new HashMap<>();
     }
 
     public Map<String, String> getStringParams() {
@@ -80,7 +78,9 @@ public class RequestParamModel {
                 }
             }
             return instance;
-        } catch (InstantiationException | IllegalAccessException e) {
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
             e.printStackTrace();
         }
         return null;

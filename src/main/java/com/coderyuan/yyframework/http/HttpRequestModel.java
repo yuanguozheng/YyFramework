@@ -34,9 +34,9 @@ public class HttpRequestModel {
     private Boolean mNeedUrlEncoded = false;
 
     public HttpRequestModel() {
-        mStringParams = new HashMap<>();
-        mFiles = new ArrayList<>();
-        mHeaders = new HashMap<>();
+        mStringParams = new HashMap<String, String>();
+        mFiles = new ArrayList<HttpFileModel>();
+        mHeaders = new HashMap<String, String>();
     }
 
     public HttpUtil.Method getMethod() {

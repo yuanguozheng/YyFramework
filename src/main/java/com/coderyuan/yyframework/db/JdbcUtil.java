@@ -108,7 +108,7 @@ public class JdbcUtil {
         }
         T resultObject = null;
         try {
-            resultObject = sQueryRunner.query(con, sql, new BeanHandler<>(T), params);
+            resultObject = sQueryRunner.query(con, sql, new BeanHandler<T>(T), params);
         } catch (SQLException e) {
             System.out.println("Execute Query Failed!");
             System.out.println("SQL: " + sql);
@@ -130,7 +130,7 @@ public class JdbcUtil {
         }
         List<T> list = null;
         try {
-            list = sQueryRunner.query(con, sql, new BeanListHandler<>(T), params);
+            list = sQueryRunner.query(con, sql, new BeanListHandler<T>(T), params);
         } catch (SQLException e) {
             System.out.println("Execute Query Failed!");
             System.out.println("SQL: " + sql);

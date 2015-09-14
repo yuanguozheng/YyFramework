@@ -57,7 +57,7 @@ import com.coderyuan.yyframework.utils.JsonUtil;
  */
 public class DispatcherServlet extends HttpServlet {
 
-    private static Map<String, ApiClassModel> sClassRouteMap = new HashMap<>();
+    private static Map<String, ApiClassModel> sClassRouteMap = new HashMap<String, ApiClassModel>();
     private static long sMaxFileSize = Constants.DEFAULT_FILE_SIZE;
     private static Logger sLogger = LoggerFactory.getLogger("com.coderyuan.yyframework.DispatcherServlet");
     private static DiskFileItemFactory sDiskFileItemFactory;
@@ -101,6 +101,7 @@ public class DispatcherServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         if (sClassRouteMap.size() == 0) {
+            System.out.println("no class found.");
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
         }
@@ -109,9 +110,10 @@ public class DispatcherServlet extends HttpServlet {
                     new File(System.getProperty("java.io.tmpdir")));
         }
         req.setCharacterEncoding(Constants.CHARSET);
-        String rawPath = req.getRequestURI().replace(req.getServletPath(), "");
+        String rawPath = req.getRequestURI().replace(req.getContextPath(), "").replace(req.getServletPath(), "");
         ServiceInfoModel serviceInfo = parsePath(rawPath);
         if (serviceInfo == null) {
+            System.out.println("Path is null.");
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
         }
@@ -126,12 +128,15 @@ public class DispatcherServlet extends HttpServlet {
     private ApiClassModel createClassInstance(ServiceInfoModel serviceInfo) {
         HttpServletResponse res = serviceInfo.getServlet().getResponse();
         ApiClassModel clsModel = sClassRouteMap.get(serviceInfo.getClassPath());
+        System.out.println(serviceInfo.getClassPath());
         if (clsModel == null) {
+            System.out.println("Class error.");
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return null;
         }
         if (clsModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
             if (!serviceInfo.isMethodAvailable(clsModel.getRequestMethod())) {
+                System.out.println("method not allow.");
                 JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
                 return null;
             }
@@ -146,7 +151,11 @@ public class DispatcherServlet extends HttpServlet {
         Object classInstance;
         try {
             classInstance = cls.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
+            return;
+        } catch (IllegalAccessException e) {
             e.printStackTrace();
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
@@ -172,19 +181,21 @@ public class DispatcherServlet extends HttpServlet {
         }
         try {
             Method method = methodModel.getMethod();
-            if (method.getParameterCount() == 1) {
+            if (method.getParameterTypes().length == 1) {
                 if (method.getParameterTypes()[0] == RequestParamModel.class) {
                     ResultModel result = (ResultModel) method.invoke(classInstance, reqParams);
                     JsonUtil.writeJson(res, result);
                     return;
                 }
-            }else if (method.getParameterCount() == 0) {
+            } else if (method.getParameterTypes().length == 0) {
                 ResultModel result = (ResultModel) method.invoke(classInstance);
                 JsonUtil.writeJson(res, result);
                 return;
             }
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
-        } catch (IllegalAccessException | InvocationTargetException e) {
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
     }

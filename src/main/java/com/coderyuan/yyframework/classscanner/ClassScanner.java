@@ -42,14 +42,17 @@ public class ClassScanner {
 
     private final String CLASS_FILE_SUFFIX = ".class"; // Java字节码文件后缀
 
-    private Map<String, ApiClassModel> classes = new HashMap<>();
+    private Map<String, ApiClassModel> classes = new HashMap<String, ApiClassModel>();
     private FilenameFilter javaClassFilter;  // 类文件过滤器,只扫描一级类
     private String packPrefix;  // 包路径根路劲
 
     public ClassScanner() {
-        javaClassFilter = (dir, name) -> {
-            // 排除内部类
-            return !name.contains("$");
+        javaClassFilter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                // 排除内部类
+                return !name.contains("$");
+            }
         };
     }
 
@@ -152,7 +155,7 @@ public class ClassScanner {
     }
 
     private Map<String, ApiMethodModel> scanMethods(Class<?> cls) {
-        HashMap<String, ApiMethodModel> methodsMap = new HashMap<>();
+        HashMap<String, ApiMethodModel> methodsMap = new HashMap<String, ApiMethodModel>();
         Method[] methods = cls.getMethods();
         for (Method m : methods) {
             RequestPath requestPath = m.getAnnotation(RequestPath.class);

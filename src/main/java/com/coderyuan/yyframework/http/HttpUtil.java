@@ -95,9 +95,9 @@ public class HttpUtil {
             return;
         }
         mMethod = method;
-        mStringParamsMap = new HashMap<>();
+        mStringParamsMap = new HashMap<String, String>();
         if (mMethod == Method.POST_FILE) {
-            mFiles = new ArrayList<>();
+            mFiles = new ArrayList<HttpFileModel>();
         }
     }
 
@@ -129,7 +129,7 @@ public class HttpUtil {
             return;
         }
         if (mStringParamsMap == null) {
-            mStringParamsMap = new HashMap<>();
+            mStringParamsMap = new HashMap<String, String>();
         }
         mStringParamsMap.put(key, value);
     }
@@ -144,7 +144,7 @@ public class HttpUtil {
             return;
         }
         if (mFiles == null) {
-            mFiles = new ArrayList<>();
+            mFiles = new ArrayList<HttpFileModel>();
         }
         mFiles.add(fileModel);
     }
@@ -187,11 +187,7 @@ public class HttpUtil {
 
     public void setHeaderValue(String key, String value) {
         if (mRequestHeaders != null) {
-            if (mRequestHeaders.containsKey(key)) {
-                mRequestHeaders.replace(key, value);
-            } else {
-                mRequestHeaders.put(key, value);
-            }
+            mRequestHeaders.put(key, value);
         }
     }
 
