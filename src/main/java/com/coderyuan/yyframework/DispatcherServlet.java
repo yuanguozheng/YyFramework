@@ -44,6 +44,7 @@ import com.coderyuan.yyframework.models.ApiClassModel;
 import com.coderyuan.yyframework.models.ApiMethodModel;
 import com.coderyuan.yyframework.models.ErrorTypes;
 import com.coderyuan.yyframework.models.RequestParamModel;
+import com.coderyuan.yyframework.models.ResultModel;
 import com.coderyuan.yyframework.models.ServiceInfoModel;
 import com.coderyuan.yyframework.models.ServletHttpModel;
 import com.coderyuan.yyframework.settings.Constants;
@@ -173,7 +174,8 @@ public class DispatcherServlet extends HttpServlet {
             Method method = methodModel.getMethod();
             if (method.getParameterCount() == 1) {
                 if (method.getParameterTypes()[0] == RequestParamModel.class) {
-                    method.invoke(classInstance, reqParams);
+                    ResultModel result = (ResultModel) method.invoke(classInstance, reqParams);
+                    JsonUtil.writeJson(res, result);
                     return;
                 }
             }

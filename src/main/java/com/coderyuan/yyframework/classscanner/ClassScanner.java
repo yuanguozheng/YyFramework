@@ -79,7 +79,13 @@ public class ClassScanner {
                 URL url = dir.nextElement();
                 String protocol = url.getProtocol();
                 if ("file".equals(protocol)) {
-                    File file = new File(url.getPath().substring(1));
+                    String path;
+                    if (url.getPath().startsWith("//")) {
+                        path = url.getPath().substring(1);
+                    } else {
+                        path = url.getPath();
+                    }
+                    File file = new File(path);
                     scanNormalPackage(file);
                 }
                 // 暂不需要扫描Jar包
