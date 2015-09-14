@@ -178,6 +178,10 @@ public class DispatcherServlet extends HttpServlet {
                     JsonUtil.writeJson(res, result);
                     return;
                 }
+            }else if (method.getParameterCount() == 0) {
+                ResultModel result = (ResultModel) method.invoke(classInstance);
+                JsonUtil.writeJson(res, result);
+                return;
             }
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
         } catch (IllegalAccessException | InvocationTargetException e) {
