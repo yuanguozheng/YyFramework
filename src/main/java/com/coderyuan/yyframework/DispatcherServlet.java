@@ -59,7 +59,6 @@ public class DispatcherServlet extends HttpServlet {
     private static Map<String, ApiClassModel> sClassRouteMap = new HashMap<String, ApiClassModel>();
     private static long sMaxFileSize = Constants.DEFAULT_FILE_SIZE;
     private static DiskFileItemFactory sDiskFileItemFactory;
-    private static boolean sDebug = false;
 
     @Override
     public void init() throws ServletException {
@@ -74,7 +73,7 @@ public class DispatcherServlet extends HttpServlet {
         boolean debug;
         try {
             debug = Boolean.parseBoolean(isDebug);
-            sDebug = debug;
+            ConsoleLogUtil.setDebug(debug);
         } catch (Exception e) {
             ConsoleLogUtil.log("Release mode.");
         }
@@ -111,7 +110,7 @@ public class DispatcherServlet extends HttpServlet {
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        ConsoleLogUtil.log(req.getMethod() + " " + req.getRequestURI());
+        ConsoleLogUtil.log(req.getMethod() + " " + req.getRequestURL());
         if (sClassRouteMap.size() == 0) {
             ConsoleLogUtil.log("Not found any api class.");
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));

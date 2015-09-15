@@ -20,7 +20,16 @@ import com.coderyuan.yyframework.settings.Constants;
  */
 public class ConsoleLogUtil {
 
+    private static boolean sDebug = false;
+
+    public static void setDebug(boolean debug) {
+        sDebug = debug;
+    }
+
     public static void log(String log) {
+        if (!sDebug) {
+            return;
+        }
         System.out.println(String.format("[%s] %s", TimeUtils.getFormatTime(Constants.LOG_TIME_FORMAT), log));
     }
 }
