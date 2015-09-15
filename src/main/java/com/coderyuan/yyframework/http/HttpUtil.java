@@ -253,9 +253,10 @@ public class HttpUtil {
         if (StringUtils.isEmpty(mServerUrl)) {
             return;
         }
-        buildStringParam();
         if (mMethod == Method.GET) {
             buildGetRequest();
+        } else {
+            mUrl = new URL(mServerUrl);
         }
         if (mUrl == null) {
             return;
@@ -293,6 +294,7 @@ public class HttpUtil {
     private void buildGetRequest() {
         try {
             StringBuilder getParamBuilder = new StringBuilder(mServerUrl);
+            buildStringParam();
             if (!StringUtils.isEmpty(mDirectParams)) {
                 if (getParamBuilder.indexOf("?") == -1) {
                     getParamBuilder.append("?");
@@ -301,6 +303,8 @@ public class HttpUtil {
             }
             mUrl = new URL(getParamBuilder.toString());
         } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

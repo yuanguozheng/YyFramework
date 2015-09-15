@@ -33,6 +33,11 @@ public class TimeUtils {
 
     private static SimpleDateFormat sFormat;
 
+    public static String getFormatTime(String format) {
+        sFormat = new SimpleDateFormat(format, Locale.CHINA);
+        return sFormat.format(new Date());
+    }
+
     public static String getDetailTime(Date date) {
         sFormat = new SimpleDateFormat(DETAIL_TIME_FORMAT, Locale.CHINA);
         return sFormat.format(date);

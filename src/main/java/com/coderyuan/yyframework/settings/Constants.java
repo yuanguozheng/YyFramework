@@ -22,10 +22,6 @@ public interface Constants {
 
     String CHARSET = "UTF-8";
 
-    String GET = "GET";
-
-    String POST = "POST";
-
     String JSON_ERROR = "{\"status\":-1,\"data\":null,\"err\":\"JSON_ERROR\"}";
 
     String BAD_ERROR = "{\"status\":-1,\"data\":null,\"err\":\"BAD_SERVER_ERROR\"}";
@@ -40,6 +36,8 @@ public interface Constants {
 
     String BASE_PACKAGE = "base-package";
 
+    String DEBUG = "debug";
+
     String MAX_FILE_UPLOAD_SIZE = "max-file-size";
 
     long KB = 1024;
@@ -47,5 +45,7 @@ public interface Constants {
     long GB = MB * KB;
     long TB = GB * KB;
 
-    long DEFAULT_FILE_SIZE = 1 * GB;
+    long DEFAULT_FILE_SIZE = GB;
+
+    String LOG_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 }

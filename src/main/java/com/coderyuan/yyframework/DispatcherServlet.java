@@ -33,8 +33,6 @@ import org.apache.commons.fileupload.servlet.FileCleanerCleanup;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileCleaningTracker;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.coderyuan.yyframework.annotations.RequestMethod;
 import com.coderyuan.yyframework.api.ApiResultManager;
@@ -48,6 +46,7 @@ import com.coderyuan.yyframework.models.ResultModel;
 import com.coderyuan.yyframework.models.ServiceInfoModel;
 import com.coderyuan.yyframework.models.ServletHttpModel;
 import com.coderyuan.yyframework.settings.Constants;
+import com.coderyuan.yyframework.utils.ConsoleLogUtil;
 import com.coderyuan.yyframework.utils.JsonUtil;
 
 /**
@@ -59,14 +58,26 @@ public class DispatcherServlet extends HttpServlet {
 
     private static Map<String, ApiClassModel> sClassRouteMap = new HashMap<String, ApiClassModel>();
     private static long sMaxFileSize = Constants.DEFAULT_FILE_SIZE;
-    private static Logger sLogger = LoggerFactory.getLogger("com.coderyuan.yyframework.DispatcherServlet");
     private static DiskFileItemFactory sDiskFileItemFactory;
+    private static boolean sDebug = false;
 
     @Override
     public void init() throws ServletException {
+        initDebugMode();
         initDataBase();
         initFileSize();
         scanApiClass();
+    }
+
+    private void initDebugMode() {
+        String isDebug = getServletConfig().getInitParameter(Constants.DEBUG);
+        boolean debug;
+        try {
+            debug = Boolean.parseBoolean(isDebug);
+            sDebug = debug;
+        } catch (Exception e) {
+            ConsoleLogUtil.log("Release mode.");
+        }
     }
 
     private void initFileSize() {
@@ -76,7 +87,7 @@ public class DispatcherServlet extends HttpServlet {
             size = Long.parseLong(fileSizeStr);
             sMaxFileSize = size;
         } catch (Exception e) {
-            sLogger.error("Init max file upload size failed, use 1GB.");
+            ConsoleLogUtil.log("Init max file upload size failed, use 1GB.");
         }
     }
 
@@ -100,20 +111,20 @@ public class DispatcherServlet extends HttpServlet {
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+        ConsoleLogUtil.log(req.getMethod() + " " + req.getRequestURI());
         if (sClassRouteMap.size() == 0) {
-            System.out.println("no class found.");
+            ConsoleLogUtil.log("Not found any api class.");
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
         }
         if (sDiskFileItemFactory == null) {
-            sDiskFileItemFactory = newDiskFileItemFactory(getServletContext(),
-                    new File(System.getProperty("java.io.tmpdir")));
+            sDiskFileItemFactory =
+                    newDiskFileItemFactory(getServletContext(), new File(System.getProperty("java.io.tmpdir")));
         }
         req.setCharacterEncoding(Constants.CHARSET);
         String rawPath = req.getRequestURI().replace(req.getContextPath(), "").replace(req.getServletPath(), "");
         ServiceInfoModel serviceInfo = parsePath(rawPath);
         if (serviceInfo == null) {
-            System.out.println("Path is null.");
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
         }
@@ -128,15 +139,14 @@ public class DispatcherServlet extends HttpServlet {
     private ApiClassModel createClassInstance(ServiceInfoModel serviceInfo) {
         HttpServletResponse res = serviceInfo.getServlet().getResponse();
         ApiClassModel clsModel = sClassRouteMap.get(serviceInfo.getClassPath());
-        System.out.println(serviceInfo.getClassPath());
         if (clsModel == null) {
-            System.out.println("Class error.");
+            ConsoleLogUtil.log("Get class path error.");
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return null;
         }
         if (clsModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
             if (!serviceInfo.isMethodAvailable(clsModel.getRequestMethod())) {
-                System.out.println("method not allow.");
+                ConsoleLogUtil.log("Method not allowed.");
                 JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
                 return null;
             }
