@@ -11,9 +11,6 @@
  */
 package com.coderyuan.yyframework.models;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import com.coderyuan.yyframework.annotations.RequestMethod;
 
 /**
@@ -60,5 +57,9 @@ public class ServiceInfoModel {
 
     public void setServlet(ServletHttpModel servlet) {
         mServlet = servlet;
+    }
+
+    public String getFullPath() {
+        return String.format("%s%s", mClassPath, mMethodPath);
     }
 }

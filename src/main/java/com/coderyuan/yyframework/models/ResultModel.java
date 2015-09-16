@@ -13,13 +13,13 @@ package com.coderyuan.yyframework.models;
 
 import com.google.gson.annotations.SerializedName;
 
-public class ResultModel<T> {
+public class ResultModel {
 
     @SerializedName("status")
     private int mStatus = 0;
 
     @SerializedName("data")
-    private T mData;
+    private Object mData;
 
     @SerializedName("err")
     private String mError = null;
@@ -34,11 +34,11 @@ public class ResultModel<T> {
         mStatus = status;
     }
 
-    public T getData() {
+    public Object getData() {
         return mData;
     }
 
-    public void setData(T data) {
+    public void setData(Object data) {
         mData = data;
     }
 

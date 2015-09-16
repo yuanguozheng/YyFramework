@@ -26,10 +26,12 @@ import java.util.jar.JarFile;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.coderyuan.yyframework.annotations.Jsonp;
 import com.coderyuan.yyframework.annotations.RequestMethod;
 import com.coderyuan.yyframework.annotations.RequestPath;
 import com.coderyuan.yyframework.annotations.RequestWithFile;
 import com.coderyuan.yyframework.models.ApiClassModel;
+import com.coderyuan.yyframework.models.ApiInfo;
 import com.coderyuan.yyframework.models.ApiMethodModel;
 import com.coderyuan.yyframework.models.ResultModel;
 
@@ -42,9 +44,9 @@ public class ClassScanner {
 
     private final String CLASS_FILE_SUFFIX = ".class"; // Java字节码文件后缀
 
-    private Map<String, ApiClassModel> classes = new HashMap<String, ApiClassModel>();
+    private Map<String, ApiInfo> apis = new HashMap<String, ApiInfo>();
     private FilenameFilter javaClassFilter;  // 类文件过滤器,只扫描一级类
-    private String packPrefix;  // 包路径根路劲
+    private String packPrefix = Thread.currentThread().getContextClassLoader().getResource("").getPath();  // 包路径根路劲
 
     public ClassScanner() {
         javaClassFilter = new FilenameFilter() {
@@ -64,7 +66,7 @@ public class ClassScanner {
         if (dir.isDirectory()) {
             scanNormalPackage(dir);
         }
-        return classes.size();
+        return apis.size();
     }
 
     public Integer doScan(String packagePath, boolean recursive) {
@@ -73,7 +75,10 @@ public class ClassScanner {
         try {
             // 得到指定路径中所有的资源文件
             dir = Thread.currentThread().getContextClassLoader().getResources(filePackPath);
-            packPrefix = Thread.currentThread().getContextClassLoader().getResource("").getPath();
+            URL resource = Thread.currentThread().getContextClassLoader().getResource("");
+            if (resource != null) {
+                packPrefix = resource.getPath();
+            }
             if (System.getProperty("file.separator").equals("\\")) {
                 packPrefix = packPrefix.substring(1);
             }
@@ -99,7 +104,7 @@ public class ClassScanner {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return classes.size();
+        return apis.size();
     }
 
     private void scanJar(URL url, boolean recursive) throws IOException, ClassNotFoundException {
@@ -118,7 +123,7 @@ public class ClassScanner {
             // .class
             if (fileName.endsWith(CLASS_FILE_SUFFIX)) {
                 String className = fileName.substring(0, fileName.indexOf('.')).replace('/', '.');
-                //classes.put(className, Class.forName(className));
+                //apis.put(className, Class.forName(className));
             }
         }
     }
@@ -148,8 +153,11 @@ public class ClassScanner {
                     classModel.setRequestMethod(requestMethod.value());
                 }
                 Map<String, ApiMethodModel> methods = scanMethods(cls);
-                classModel.setMethods(methods);
-                classes.put(requestPath.value(), classModel);
+                for (String k : methods.keySet()) {
+                    ApiMethodModel m = methods.get(k);
+                    String fullPath = String.format("%s%s", requestPath.value(), k);
+                    apis.put(fullPath, new ApiInfo(classModel, m));
+                }
             }
         }
     }
@@ -183,12 +191,16 @@ public class ClassScanner {
             if (requestWithFile != null) {
                 methodModel.setIsFileRequest(true);
             }
+            Jsonp jsonp = m.getAnnotation(Jsonp.class);
+            if (jsonp != null) {
+                methodModel.setEnableJsonp(true);
+            }
             methodsMap.put(requestPath.value(), methodModel);
         }
         return methodsMap;
     }
 
-    public Map<String, ApiClassModel> getClasses() {
-        return classes;
+    public Map<String, ApiInfo> getApis() {
+        return apis;
     }
 }

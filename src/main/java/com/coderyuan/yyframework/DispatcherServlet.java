@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -29,17 +28,14 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.FileCleanerCleanup;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.apache.commons.io.FileCleaningTracker;
 import org.apache.commons.lang3.StringUtils;
 
 import com.coderyuan.yyframework.annotations.RequestMethod;
 import com.coderyuan.yyframework.api.ApiResultManager;
 import com.coderyuan.yyframework.classscanner.ClassScanner;
 import com.coderyuan.yyframework.db.DbUtils;
-import com.coderyuan.yyframework.models.ApiClassModel;
-import com.coderyuan.yyframework.models.ApiMethodModel;
+import com.coderyuan.yyframework.models.ApiInfo;
 import com.coderyuan.yyframework.models.ErrorTypes;
 import com.coderyuan.yyframework.models.RequestParamModel;
 import com.coderyuan.yyframework.models.ResultModel;
@@ -48,6 +44,7 @@ import com.coderyuan.yyframework.models.ServletHttpModel;
 import com.coderyuan.yyframework.settings.Constants;
 import com.coderyuan.yyframework.utils.ConsoleLogUtil;
 import com.coderyuan.yyframework.utils.JsonUtil;
+import com.coderyuan.yyframework.utils.ServletUtil;
 
 /**
  * DispatcherServlet
@@ -56,7 +53,7 @@ import com.coderyuan.yyframework.utils.JsonUtil;
  */
 public class DispatcherServlet extends HttpServlet {
 
-    private static Map<String, ApiClassModel> sClassRouteMap = new HashMap<String, ApiClassModel>();
+    private static Map<String, ApiInfo> sClassRouteMap = new HashMap<String, ApiInfo>();
     private static long sMaxFileSize = Constants.DEFAULT_FILE_SIZE;
     private static DiskFileItemFactory sDiskFileItemFactory;
 
@@ -97,7 +94,8 @@ public class DispatcherServlet extends HttpServlet {
         }
         ClassScanner scanner = new ClassScanner();
         scanner.doScan(basePackage, true);
-        sClassRouteMap = scanner.getClasses();
+        sClassRouteMap = scanner.getApis();
+        ConsoleLogUtil.log(String.format("Found %d apis.", sClassRouteMap.size()));
     }
 
     private void initDataBase() {
@@ -117,71 +115,58 @@ public class DispatcherServlet extends HttpServlet {
             return;
         }
         if (sDiskFileItemFactory == null) {
-            sDiskFileItemFactory =
-                    newDiskFileItemFactory(getServletContext(), new File(System.getProperty("java.io.tmpdir")));
+            sDiskFileItemFactory = ServletUtil.newDiskFileItemFactory(getServletContext(),
+                    new File(System.getProperty("java.io.tmpdir")));
         }
         req.setCharacterEncoding(Constants.CHARSET);
         String rawPath = req.getRequestURI().replace(req.getContextPath(), "").replace(req.getServletPath(), "");
-        ServiceInfoModel serviceInfo = parsePath(rawPath);
+        ServiceInfoModel serviceInfo = ServletUtil.parsePath(rawPath);
         if (serviceInfo == null) {
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
         }
         serviceInfo.setServlet(new ServletHttpModel(req, res));
-        ApiClassModel classInstance = createClassInstance(serviceInfo);
-        if (classInstance == null) {
-            return;
-        }
-        invokeMethod(serviceInfo, classInstance);
+        invokeApi(serviceInfo);
     }
 
-    private ApiClassModel createClassInstance(ServiceInfoModel serviceInfo) {
-        HttpServletResponse res = serviceInfo.getServlet().getResponse();
-        ApiClassModel clsModel = sClassRouteMap.get(serviceInfo.getClassPath());
-        if (clsModel == null) {
-            ConsoleLogUtil.log("Get class path error.");
-            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
-            return null;
-        }
-        if (clsModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
-            if (!serviceInfo.isMethodAvailable(clsModel.getRequestMethod())) {
-                ConsoleLogUtil.log("Method not allowed.");
-                JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
-                return null;
-            }
-        }
-        return clsModel;
-    }
-
-    private void invokeMethod(ServiceInfoModel serviceInfo, ApiClassModel clsModel) {
+    private void invokeApi(ServiceInfoModel serviceInfo) {
         HttpServletRequest req = serviceInfo.getServlet().getRequest();
         HttpServletResponse res = serviceInfo.getServlet().getResponse();
-        Class<?> cls = clsModel.getApiClass();
-        Object classInstance;
-        try {
-            classInstance = cls.newInstance();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
-            return;
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
+        String p = serviceInfo.getFullPath();
+        if (StringUtils.isEmpty(p)) {
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
         }
-        ApiMethodModel methodModel = clsModel.getMethods().get(serviceInfo.getMethodPath());
-        if (methodModel == null) {
+        if (!sClassRouteMap.containsKey(p)) {
             JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
             return;
         }
-        if (methodModel.getRequestMethod() != RequestMethod.MethodEnum.ALL) {
-            if (!req.getMethod().toUpperCase().equals(methodModel.getRequestMethod().toString())) {
+        ApiInfo apiInfo = sClassRouteMap.get(p);
+        RequestMethod.MethodEnum rm = apiInfo.getRequestMethod();
+        if (rm != RequestMethod.MethodEnum.ALL) {
+            if (!req.getMethod().toUpperCase().equals(rm.toString())) {
                 JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.METHOD_NOT_ALLOW));
                 return;
             }
         }
+        doReflect(serviceInfo, apiInfo);
+    }
+
+    private void doReflect(ServiceInfoModel serviceInfo, ApiInfo apiInfo) {
+        HttpServletRequest req = serviceInfo.getServlet().getRequest();
+        HttpServletResponse res = serviceInfo.getServlet().getResponse();
+        Class<?> apiClass = apiInfo.getApiClass();
+        Object classInstance = null;
+        try {
+            classInstance = apiClass.newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        Method method = apiInfo.getMethod();
         RequestParamModel reqParams = new RequestParamModel(serviceInfo.getServlet());
-        if (methodModel.isFileRequest()) {
+        if (apiInfo.isFileRequest()) {
             initFileRequestParams(req, reqParams);
         }
         Map<String, String[]> normalParams = req.getParameterMap();
@@ -189,24 +174,26 @@ public class DispatcherServlet extends HttpServlet {
             reqParams.getStringParams().put(key, normalParams.get(key)[0]);
         }
         try {
-            Method method = methodModel.getMethod();
+            ResultModel result = null;
             if (method.getParameterTypes().length == 1) {
                 if (method.getParameterTypes()[0] == RequestParamModel.class) {
-                    ResultModel result = (ResultModel) method.invoke(classInstance, reqParams);
-                    JsonUtil.writeJson(res, result);
-                    return;
+                    result = (ResultModel) method.invoke(classInstance, reqParams);
                 }
             } else if (method.getParameterTypes().length == 0) {
-                ResultModel result = (ResultModel) method.invoke(classInstance);
-                JsonUtil.writeJson(res, result);
-                return;
+                result = (ResultModel) method.invoke(classInstance);
             }
-            JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.NOT_FOUND));
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            if (reqParams.getStringParams().containsKey("callback")) {
+                JsonUtil.writeJson(res, result, reqParams.getStringParams().get("callback"));
+            } else {
+                JsonUtil.writeJson(res, result);
+            }
+            return;
         } catch (InvocationTargetException e) {
             e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
         }
+        JsonUtil.writeJson(res, ApiResultManager.getErrorResult(ErrorTypes.SERVER_ERROR));
     }
 
     private void initFileRequestParams(HttpServletRequest req, RequestParamModel reqParams) {
@@ -214,58 +201,30 @@ public class DispatcherServlet extends HttpServlet {
         fileUpload.setFileItemFactory(sDiskFileItemFactory);
         fileUpload.setFileSizeMax(sMaxFileSize);
         boolean multipartContent = ServletFileUpload.isMultipartContent(req);
-        if (multipartContent) {
-            List<FileItem> items = null;
-            try {
-                items = fileUpload.parseRequest(req);
-            } catch (FileUploadException e) {
-                e.printStackTrace();
-            }
-            Iterator<FileItem> iter = null;
-            if (items != null) {
-                iter = items.iterator();
-            }
-            if (iter != null) {
-                while (iter.hasNext()) {
-                    FileItem item = iter.next();
-                    if (item.isFormField()) {
-                        reqParams.getStringParams().put(item.getFieldName(), item.getString());
-                    } else {
-                        reqParams.getFiles().put(item.getFieldName(), item);
-                    }
-                }
+        if (!multipartContent) {
+            return;
+        }
+        List<FileItem> items = null;
+        try {
+            items = fileUpload.parseRequest(req);
+        } catch (FileUploadException e) {
+            e.printStackTrace();
+        }
+        Iterator<FileItem> iter = null;
+        if (items != null) {
+            iter = items.iterator();
+        }
+        if (iter == null) {
+            return;
+        }
+        while (iter.hasNext()) {
+            FileItem item = iter.next();
+            if (item.isFormField()) {
+                reqParams.getStringParams().put(item.getFieldName(), item.getString());
+            } else {
+                reqParams.getFiles().put(item.getFieldName(), item);
             }
         }
     }
 
-    private ServiceInfoModel parsePath(String rawPath) {
-        StringBuilder reqUri = new StringBuilder(rawPath);
-        int lastLineIndex = reqUri.lastIndexOf("/");
-        String methodUri = null;
-        String classUri = null;
-        if (lastLineIndex == -1 || (lastLineIndex == 0 && reqUri.length() == 1)) {
-            return null;
-        }
-        while (lastLineIndex == reqUri.length() - 1) {
-            reqUri.delete(lastLineIndex, reqUri.length());
-            lastLineIndex = reqUri.lastIndexOf("/");
-        }
-        if (lastLineIndex == 0) {
-            methodUri = null;
-            classUri = reqUri.toString();
-        } else if (lastLineIndex != -1 && lastLineIndex != reqUri.length() - 1) {
-            methodUri = reqUri.substring(lastLineIndex);
-            reqUri.delete(lastLineIndex, reqUri.length());
-            classUri = reqUri.toString();
-        }
-        return new ServiceInfoModel(classUri, methodUri);
-    }
-
-    private static DiskFileItemFactory newDiskFileItemFactory(ServletContext context, File repository) {
-        FileCleaningTracker fileCleaningTracker = FileCleanerCleanup.getFileCleaningTracker(context);
-        DiskFileItemFactory factory =
-                new DiskFileItemFactory(DiskFileItemFactory.DEFAULT_SIZE_THRESHOLD, repository);
-        factory.setFileCleaningTracker(fileCleaningTracker);
-        return factory;
-    }
 }

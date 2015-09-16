@@ -20,7 +20,7 @@ public class ApiResultManager {
     private static final int SUCCESS_STATE = 0;
 
     public static ResultModel getResult(int status, Object data, String error) {
-        ResultModel<Object> result = new ResultModel<Object>();
+        ResultModel result = new ResultModel();
         result.setStatus(status);
         result.setData(data);
         result.setError(error);
@@ -44,7 +44,7 @@ public class ApiResultManager {
     }
 
     public static ResultModel getRawResult(String result) {
-        ResultModel<String> raw = new ResultModel<String>();
+        ResultModel raw = new ResultModel();
         raw.setRawOutput(true);
         raw.setData(result);
         return raw;
