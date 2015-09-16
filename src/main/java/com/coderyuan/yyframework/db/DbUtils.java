@@ -15,9 +15,6 @@ import java.beans.PropertyVetoException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.coderyuan.yyframework.models.DbConnectionModel;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.mchange.v2.c3p0.DataSources;
@@ -28,8 +25,6 @@ import com.mchange.v2.c3p0.DataSources;
  * @author yuanguozheng
  */
 public class DbUtils {
-
-    private static Logger sLogger = LogManager.getLogger(DbUtils.class.getSimpleName());
 
     private static DbUtils sDb;
     private ComboPooledDataSource mDatasource;
