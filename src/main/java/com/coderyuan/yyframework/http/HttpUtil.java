@@ -96,6 +96,7 @@ public class HttpUtil {
         }
         mMethod = method;
         mStringParamsMap = new HashMap<String, String>();
+        mRequestHeaders = new HashMap<String, String>();
         if (mMethod == Method.POST_FILE) {
             mFiles = new ArrayList<HttpFileModel>();
         }
