@@ -30,6 +30,17 @@ public class ConsoleLogUtil {
         if (!sDebug) {
             return;
         }
-        System.out.println(String.format("[%s] %s", TimeUtils.getFormatTime(Constants.LOG_TIME_FORMAT), log));
+        System.out.println(getStr((log)));
+    }
+
+    public static void error(String err) {
+        if (!sDebug) {
+            return;
+        }
+        System.err.println(getStr(err));
+    }
+
+    private static String getStr(String log) {
+        return String.format("[%s] %s", TimeUtils.getFormatTime(Constants.LOG_TIME_FORMAT), log);
     }
 }

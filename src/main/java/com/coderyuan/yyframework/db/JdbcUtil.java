@@ -24,6 +24,8 @@ import org.apache.commons.dbutils.handlers.MapHandler;
 import org.apache.commons.dbutils.handlers.MapListHandler;
 import org.apache.commons.lang3.StringUtils;
 
+import com.coderyuan.yyframework.utils.ConsoleLogUtil;
+
 /**
  * JdbcUtil
  *
@@ -44,7 +46,7 @@ public class JdbcUtil {
                 con.commit();
             }
         } catch (SQLException e) {
-            System.out.println("Execute Update/Insert Failed!");
+            ConsoleLogUtil.error("Execute Update/Insert Failed!");
             System.out.println("SQL: " + sql);
             e.printStackTrace();
         } finally {
@@ -66,7 +68,7 @@ public class JdbcUtil {
         try {
             map = sQueryRunner.query(con, sql, new MapHandler(), params);
         } catch (SQLException e) {
-            System.out.println("Execute Query Failed!");
+            ConsoleLogUtil.error("Execute Query Failed!");
             System.out.println("SQL: " + sql);
             e.printStackTrace();
         } finally {
@@ -88,7 +90,7 @@ public class JdbcUtil {
         try {
             list = sQueryRunner.query(con, sql, new MapListHandler(), params);
         } catch (SQLException e) {
-            System.out.println("Execute Query Failed!");
+            ConsoleLogUtil.error("Execute Query Failed!");
             System.out.println("SQL: " + sql);
             e.printStackTrace();
         } finally {
@@ -110,7 +112,7 @@ public class JdbcUtil {
         try {
             resultObject = sQueryRunner.query(con, sql, new BeanHandler<T>(T), params);
         } catch (SQLException e) {
-            System.out.println("Execute Query Failed!");
+            ConsoleLogUtil.error("Execute Query Failed!");
             System.out.println("SQL: " + sql);
             e.printStackTrace();
         } finally {
@@ -132,7 +134,7 @@ public class JdbcUtil {
         try {
             list = sQueryRunner.query(con, sql, new BeanListHandler<T>(T), params);
         } catch (SQLException e) {
-            System.out.println("Execute Query Failed!");
+            ConsoleLogUtil.error("Execute Query Failed!");
             System.out.println("SQL: " + sql);
             e.printStackTrace();
         } finally {
