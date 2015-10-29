@@ -33,6 +33,10 @@ public class HttpRequestModel {
 
     private Boolean mNeedUrlEncoded = false;
 
+    private String mProxyHost;
+
+    private int mProxyPort;
+
     public HttpRequestModel() {
         mStringParams = new HashMap<String, String>();
         mFiles = new ArrayList<HttpFileModel>();
@@ -85,5 +89,21 @@ public class HttpRequestModel {
 
     public void setNeedUrlEncoded(Boolean needUrlEncoded) {
         mNeedUrlEncoded = needUrlEncoded;
+    }
+
+    public String getProxyHost() {
+        return mProxyHost;
+    }
+
+    public void setProxyHost(String proxyHost) {
+        mProxyHost = proxyHost;
+    }
+
+    public int getProxyPort() {
+        return mProxyPort;
+    }
+
+    public void setProxyPort(int proxyPort) {
+        mProxyPort = proxyPort;
     }
 }

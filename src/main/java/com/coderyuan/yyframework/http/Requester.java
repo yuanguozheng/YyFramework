@@ -11,6 +11,8 @@
  */
 package com.coderyuan.yyframework.http;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.coderyuan.yyframework.http.HttpUtil.Method;
 
 /**
@@ -32,6 +34,9 @@ public class Requester {
         }
         HttpUtil util = reqModel.getMethod() == Method.GET ? sGetUtil : sPostUtil;
         util.clear();
+        if (StringUtils.isNotEmpty(reqModel.getProxyHost()) && reqModel.getProxyPort() != 0) {
+            util.setProxy(reqModel.getProxyHost(), reqModel.getProxyPort());
+        }
         util.setUrl(reqModel.getUrl());
         util.setHeaders(reqModel.getHeaders());
         util.setRequestStringParams(reqModel.getStringParams());

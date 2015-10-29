@@ -19,8 +19,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.Proxy;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -83,6 +86,7 @@ public class HttpUtil {
     private boolean mDirectWriteParams = false;
     private String mDirectParams;
     private boolean mNeedUrlencoded = false;
+    private Proxy mProxy = null;
 
     /**
      * 构造函数，初始化Http工具类
@@ -208,6 +212,10 @@ public class HttpUtil {
         mNeedUrlencoded = needUrlencoded;
     }
 
+    public void setProxy(String host, int port) {
+        mProxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+    }
+
     public void clear() {
         if (mFiles != null) {
             mFiles.clear();
@@ -218,6 +226,7 @@ public class HttpUtil {
         if (mStringParamsMap != null) {
             mStringParamsMap.clear();
         }
+        mProxy = null;
     }
 
     /**
@@ -315,7 +324,8 @@ public class HttpUtil {
      */
     private void setHeaders() {
         try {
-            mConnection = (HttpURLConnection) mUrl.openConnection();
+            URLConnection conn = mProxy == null ? mUrl.openConnection() : mUrl.openConnection(mProxy);
+            mConnection = (HttpURLConnection) conn;
             mConnection.setUseCaches(CACHES);
             mConnection.setConnectTimeout(TIME_OUT);
             if (mMethod == Method.GET) {

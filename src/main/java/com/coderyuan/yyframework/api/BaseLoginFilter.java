@@ -47,6 +47,7 @@ public abstract class BaseLoginFilter implements Filter {
         mRequest = (HttpServletRequest) request;
         mResponse = (HttpServletResponse) response;
         mSession = mRequest.getSession();
+        mRequest.setCharacterEncoding("utf-8");
         if (mSession == null) {
             JsonUtil.writeJson(mResponse, ApiResultManager.getErrorResult(ErrorTypes.NOT_LOGIN));
             return;
