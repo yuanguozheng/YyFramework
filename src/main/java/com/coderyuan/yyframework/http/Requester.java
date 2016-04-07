@@ -37,6 +37,7 @@ public class Requester {
         if (StringUtils.isNotEmpty(reqModel.getProxyHost()) && reqModel.getProxyPort() != 0) {
             util.setProxy(reqModel.getProxyHost(), reqModel.getProxyPort());
         }
+        util.setFollowRedirect(reqModel.isFollowRedirect());
         util.setUrl(reqModel.getUrl());
         util.setHeaders(reqModel.getHeaders());
         util.setRequestStringParams(reqModel.getStringParams());

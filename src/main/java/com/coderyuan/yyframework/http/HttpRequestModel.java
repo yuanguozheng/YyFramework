@@ -31,11 +31,13 @@ public class HttpRequestModel {
 
     private HashMap<String, String> mHeaders;
 
-    private Boolean mNeedUrlEncoded = false;
+    private boolean mNeedUrlEncoded = false;
 
     private String mProxyHost;
 
     private int mProxyPort;
+
+    private boolean mFollowRedirect = false;
 
     public HttpRequestModel() {
         mStringParams = new HashMap<String, String>();
@@ -105,5 +107,13 @@ public class HttpRequestModel {
 
     public void setProxyPort(int proxyPort) {
         mProxyPort = proxyPort;
+    }
+
+    public boolean isFollowRedirect() {
+        return mFollowRedirect;
+    }
+
+    public void setFollowRedirect(boolean followRedirect) {
+        mFollowRedirect = followRedirect;
     }
 }

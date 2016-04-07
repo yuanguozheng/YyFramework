@@ -37,6 +37,18 @@ public class HttpResponseModel {
         return mHeaders;
     }
 
+    public String getHeaderItemString(String item) {
+        List<String> strings = mHeaders.get(item);
+        if (strings == null || strings.isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (String i : strings) {
+            builder.append(i);
+        }
+        return builder.toString();
+    }
+
     public void setInputStream(InputStream inputStream) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         byte[] buffer = new byte[BUFFER_SIZE];

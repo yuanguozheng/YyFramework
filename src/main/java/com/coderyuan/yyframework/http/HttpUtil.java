@@ -41,6 +41,14 @@ import com.coderyuan.yyframework.utils.StreamUtil;
  */
 public class HttpUtil {
 
+    public boolean isFollowRedirect() {
+        return mFollowRedirect;
+    }
+
+    public void setFollowRedirect(boolean followRedirect) {
+        mFollowRedirect = followRedirect;
+    }
+
     public enum Method {
         GET, POST, POST_FILE
     }
@@ -87,6 +95,7 @@ public class HttpUtil {
     private String mDirectParams;
     private boolean mNeedUrlencoded = false;
     private Proxy mProxy = null;
+    private boolean mFollowRedirect = false;
 
     /**
      * 构造函数，初始化Http工具类
@@ -125,9 +134,6 @@ public class HttpUtil {
 
     /**
      * 添加字符串参数
-     *
-     * @param 键
-     * @param 值
      */
     public void addParam(String key, String value) {
         if (StringUtils.isEmpty(key)) {
@@ -141,8 +147,6 @@ public class HttpUtil {
 
     /**
      * 添加单个文件参数
-     *
-     * @param 文件信息
      */
     public void addFile(HttpFileModel fileModel) {
         if (mMethod != Method.POST_FILE) {
@@ -168,9 +172,6 @@ public class HttpUtil {
 
     /**
      * 直接写入URL参数
-     *
-     * @param isDirect
-     * @param params
      */
     public void setDirectWriteParams(String params) {
         if (!StringUtils.isEmpty(params)) {
@@ -181,8 +182,6 @@ public class HttpUtil {
 
     /**
      * 添加文件列表
-     *
-     * @param 文件列表
      */
     public void setFiles(ArrayList<HttpFileModel> files) {
         if (mMethod == Method.POST_FILE) {
@@ -326,6 +325,7 @@ public class HttpUtil {
         try {
             URLConnection conn = mProxy == null ? mUrl.openConnection() : mUrl.openConnection(mProxy);
             mConnection = (HttpURLConnection) conn;
+            mConnection.setInstanceFollowRedirects(mFollowRedirect);
             mConnection.setUseCaches(CACHES);
             mConnection.setConnectTimeout(TIME_OUT);
             if (mMethod == Method.GET) {
@@ -421,10 +421,6 @@ public class HttpUtil {
 
     /**
      * 写入字符串流
-     *
-     * @param 字符串
-     *
-     * @throws IOException，写入流失败时抛出异常
      */
     private void writeStringBytes(String string) throws IOException {
         byte[] stringBytes = string.getBytes(CHARSET);
@@ -460,8 +456,6 @@ public class HttpUtil {
 
     /**
      * 写入文件流
-     *
-     * @param 文件
      */
     private void writeFileStream(File file) {
         FileInputStream fis = null;
