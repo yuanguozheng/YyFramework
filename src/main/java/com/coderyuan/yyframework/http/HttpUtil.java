@@ -41,14 +41,6 @@ import com.coderyuan.yyframework.utils.StreamUtil;
  */
 public class HttpUtil {
 
-    public boolean isFollowRedirect() {
-        return mFollowRedirect;
-    }
-
-    public void setFollowRedirect(boolean followRedirect) {
-        mFollowRedirect = followRedirect;
-    }
-
     public enum Method {
         GET, POST, POST_FILE
     }
@@ -96,6 +88,9 @@ public class HttpUtil {
     private boolean mNeedUrlencoded = false;
     private Proxy mProxy = null;
     private boolean mFollowRedirect = false;
+    private boolean mSelfSignedHttps;
+    private String mTrustHostname;
+    private InputStream mCert;
 
     /**
      * 构造函数，初始化Http工具类
@@ -215,6 +210,38 @@ public class HttpUtil {
         mProxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
     }
 
+    public boolean isFollowRedirect() {
+        return mFollowRedirect;
+    }
+
+    public void setFollowRedirect(boolean followRedirect) {
+        mFollowRedirect = followRedirect;
+    }
+
+    public boolean isSelfSignedHttps() {
+        return mSelfSignedHttps;
+    }
+
+    public void setSelfSignedHttps(boolean selfSignedHttps) {
+        mSelfSignedHttps = selfSignedHttps;
+    }
+
+    public String getTrustHostname() {
+        return mTrustHostname;
+    }
+
+    public void setTrustHostname(String trustHostname) {
+        mTrustHostname = trustHostname;
+    }
+
+    public InputStream getCert() {
+        return mCert;
+    }
+
+    public void setCert(InputStream cert) {
+        mCert = cert;
+    }
+
     public void clear() {
         if (mFiles != null) {
             mFiles.clear();
@@ -270,6 +297,9 @@ public class HttpUtil {
         if (mUrl == null) {
             return;
         }
+        mConnection = mSelfSignedHttps ?
+                HttpsConnection.setUpHttpsConnection(mServerUrl, mTrustHostname, mCert) :
+                (HttpURLConnection) mUrl.openConnection();
         setHeaders();
         if (mConnection == null) {
             return;

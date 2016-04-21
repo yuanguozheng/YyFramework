@@ -11,6 +11,7 @@
  */
 package com.coderyuan.yyframework.http;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -38,6 +39,10 @@ public class HttpRequestModel {
     private int mProxyPort;
 
     private boolean mFollowRedirect = false;
+
+    private InputStream mCaStream;
+
+    private String mTrustHostName;
 
     public HttpRequestModel() {
         mStringParams = new HashMap<String, String>();
@@ -115,5 +120,21 @@ public class HttpRequestModel {
 
     public void setFollowRedirect(boolean followRedirect) {
         mFollowRedirect = followRedirect;
+    }
+
+    public InputStream getCaStream() {
+        return mCaStream;
+    }
+
+    public void setCaStream(InputStream caStream) {
+        mCaStream = caStream;
+    }
+
+    public String getTrustHostName() {
+        return mTrustHostName;
+    }
+
+    public void setTrustHostName(String trustHostName) {
+        mTrustHostName = trustHostName;
     }
 }

@@ -11,6 +11,8 @@
  */
 package com.coderyuan.yyframework.http;
 
+import java.io.InputStream;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.coderyuan.yyframework.http.HttpUtil.Method;
@@ -42,16 +44,10 @@ public class Requester {
         util.setHeaders(reqModel.getHeaders());
         util.setRequestStringParams(reqModel.getStringParams());
         util.setNeedUrlencoded(reqModel.getNeedUrlEncoded());
+        InputStream caStream = reqModel.getCaStream();
+        util.setSelfSignedHttps(caStream != null);
+        util.setCert(caStream);
+        util.setTrustHostname(reqModel.getTrustHostName());
         return util.request();
-    }
-
-    public static HttpResponseModel postWithRawUrlParams(String url, String params) {
-        if (sPostUtil == null) {
-            sPostUtil = new HttpUtil(Method.POST);
-        }
-        sPostUtil.clear();
-        sPostUtil.setUrl(url);
-        sPostUtil.setDirectWriteParams(params);
-        return sPostUtil.request();
     }
 }
